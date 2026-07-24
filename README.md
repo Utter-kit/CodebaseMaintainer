@@ -1,3 +1,23 @@
 # CodebaseMaintainer
-Maintaining a Python web application. This codebase contains numerous Python files and is built using the Flask framework. It includes multiple modules such as business logic and API interfaces. In such a scenario, we need an intelligent assistant to help us explore the codebase and understand the project structure and dependencies.
-<img width="3016" height="1526" alt="image" src="https://github.com/user-attachments/assets/cbedf091-af31-4669-9445-7e480d127dab" />
+┌─────────────────────────────────────────────────┐
+│           CodebaseMaintainer.py                │  ← 门面/入口（大脑中枢）
+│  - 持有 session_id, project_name              │
+│  - 构建 System Instructions                    │
+│  - 调度协调各模块                              │
+└──────────────┬──────────────┬──────────────────┘
+               │              │
+               ▼              ▼
+┌─────────────────────┐ ┌──────────────────────┐
+│  ContextBuilder.py  │ │  ContextNotetool.py  │  ← 核心工具层
+│  - 代码库扫描       │ │  - 笔记读写 (CRUD)   │
+│  - 文件结构解析     │ │  - 历史记录追踪      │
+│  - 构建上下文数据包 │ │  - 任务状态标记      │
+└─────────┬───────────┘ └──────────┬───────────┘
+          │                          │
+          ▼                          ▼
+┌─────────────────────┐ ┌──────────────────────┐
+│  ContextPacket.py   │ │   ContextConfig.py   │  ← 数据/配置层
+│  - 数据结构定义     │ │  - 全局配置参数      │
+│  - 序列化/反序列化  │ │  - 模式切换(mode)    │
+│  - 上下文传输载体   │ │  - 环境变量管理      │
+└─────────────────────┘ └──────────────────────┘
