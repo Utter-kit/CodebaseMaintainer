@@ -233,50 +233,6 @@ class CodebaseMaintainer:
     def _build_system_instructions(self, mode: str) -> str:
         """构建系统指令"""
         base_instructions = f"""你是 {self.project_name} 项目的代码库维护助手。
-
-你的核心能力:
-1. 使用 TerminalTool 探索代码库(ls, cat, grep, find等)
-2. 使用 NoteTool 记录发现和任务
-3. 基于历史笔记提供连贯的建议
-
-当前会话ID: {self.session_id}
-"""
-
-        mode_specific = {
-            "explore": """
-当前模式: 探索代码库
-
-你应该:
-- 主动使用 terminal 命令了解代码结构
-- 识别关键模块和文件
-- 记录项目架构到笔记
-""",
-            "analyze": """
-当前模式: 分析代码质量
-
-你应该:
-- 查找代码问题(重复、复杂度、TODO等)
-- 评估代码质量
-- 将发现的问题记录为 blocker 或 action 笔记
-""",
-            "plan": """
-当前模式: 任务规划
-
-你应该:
-- 回顾历史笔记和任务
-- 制定下一步行动计划
-- 更新任务状态笔记
-""",
-            "auto": """
-当前模式: 自动决策
-
-你应该:
-- 根据用户需求灵活选择策略
-- 在需要时使用工具
-- 保持回答的专业性和实用性
-"""
-        }
-
         return base_instructions + mode_specific.get(mode, mode_specific["auto"])
 
     def _postprocess_response(self, user_input: str, response: str):
