@@ -1,8 +1,8 @@
 # CodebaseMaintainer  
-A assistant which can Explore and understand the structure of the code base
-Record the identified problems and improvement point
-Track long-term refactoring tasks
-Maintain coherence within the context window constraints
+A assistant which can Explore and understand the structure of the code base,
+record the identified problems and improvement point,
+track long-term refactoring tasks,
+maintain coherence within the context window constraints
 
 
 # Project
