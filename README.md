@@ -11,11 +11,11 @@ my_flask_app/
 
 ├── app/
 
-│   ├── models/
+├── models/
 
-│   ├── routes/
+├── routes/
 
-│   └── services/
+├── services/
 
 ├── tests/
 
@@ -25,14 +25,14 @@ codebase-maintainer/
 
 ├── maintainer.py        
 
-└── my_flask_app_notes/   # Note storage (automatically created)
+├── my_flask_app_notes/   # Note storage (automatically created)
 
-└── ConetextBuilder 
+├── ConetextBuilder 
 
-└── ContextConfig
+├── ContextConfig
 
-└── ContextNotetool
+├── ContextNotetool
 
-└── ConetextBuilder 
+├── ConetextBuilder 
 
-├── ContextPacket
+└── ContextPacket
