@@ -1,6 +1,13 @@
-# CodebaseMaintainer 智能助手
+# CodebaseMaintainer  
+A assistant which can Explore and understand the structure of the code base
+Record the identified problems and improvement point
+Track long-term refactoring tasks
+Maintain coherence within the context window constraints
 
-my_flask_app/  # 待维护的代码库
+
+# Project
+
+my_flask_app/ 
 
 ├── app/
 
@@ -14,11 +21,11 @@ my_flask_app/  # 待维护的代码库
 
 └── config.py
 
-codebase-maintainer/      # 本仓库
+codebase-maintainer/     
 
-├── maintainer.py         # 核心类实现
+├── maintainer.py        
 
-└── my_flask_app_notes/   # 笔记存储（自动创建）
+└── my_flask_app_notes/   # Note storage (automatically created)
 
 └── ConetextBuilder 
 
