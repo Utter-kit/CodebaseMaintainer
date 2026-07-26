@@ -7,20 +7,6 @@ maintain coherence within the context window constraints
 
 # Project
 
-my_flask_app/ 
-
-├── app/
-
-├── models/
-
-├── routes/
-
-├── services/
-
-├── tests/
-
-└── config.py
-
 codebase-maintainer/     
 
 ├── maintainer.py        
