@@ -1,0 +1,19 @@
+import time
+from codebase_maintainer import CodebaseMaintainer
+
+def auto_maintain():
+   
+    maintainer = CodebaseMaintainer(
+        project_name="my_flask_app",
+        codebase_path="/path/to/my_flask_app"
+    )
+
+    maintainer.explore(".")  
+    maintainer.analyze()
+    maintainer.plan_next_steps()
+
+    report = maintainer.generate_report(save_to_file=True)
+    print(f"报告已保存至 {report['report_file']}")
+
+if __name__ == "__main__":
+    auto_maintain()
