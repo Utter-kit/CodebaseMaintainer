@@ -203,7 +203,6 @@ class CodebaseMaintainer:
         packets = []
 
         for note in notes:
-            # 根据笔记类型设置不同的相关性分数
             relevance_map = {
                 "blocker": 0.9,
                 "action": 0.8,
@@ -325,8 +324,6 @@ class CodebaseMaintainer:
         # 限制历史长度(保留最近10轮对话)
         if len(self.conversation_history) > 20:
             self.conversation_history = self.conversation_history[-20:]
-
-    # === 便捷方法 ===
 
     def explore(self, target: str = ".") -> str:
         """探索代码库"""
