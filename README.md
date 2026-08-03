@@ -1,6 +1,6 @@
 # CodebaseMaintainer
 
-`CodebaseMaintainer` 是第 9.6 节“长程智能体实战：代码库维护助手”的可运行示例。它把 `ContextBuilder`、`NoteTool` 和 `TerminalTool` 组合成一个长期维护代码库的助手，用于探索项目结构、记录技术债、追踪重构任务，并在上下文窗口有限时保持高信号密度。
+`CodebaseMaintainer` 是代码库维护助手”的可运行示例。它把 `ContextBuilder`、`NoteTool` 和 `TerminalTool` 组合成一个长期维护代码库的助手，用于探索项目结构、记录技术债、追踪重构任务，并在上下文窗口有限时保持高信号密度。
 
 ## 能力
 
