@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "codebase-maintainer"
+version = "0.1.0"
+description = "Long-running codebase maintenance assistant demo with context, notes, and terminal tools."
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [{ name = "CodebaseMaintainer Contributors" }]
+dependencies = []
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0"]
+
+[project.scripts]
+codebase-maintainer = "codebase_maintainer.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["codebase_maintainer*"]
