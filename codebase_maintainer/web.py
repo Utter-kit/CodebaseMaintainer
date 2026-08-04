@@ -324,23 +324,7 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
       </aside>
     </section>
 
-    <section class="workspace-grid">
-      <article class="panel output">
-        <div class="panel-heading">
-          <h2>助手输出</h2>
-          <span>ContextBuilder + NoteTool + TerminalTool</span>
-        </div>
-        <pre>{escape(state.last_response or view["hint"])}</pre>
-      </article>
-
-      <article class="panel output">
-        <div class="panel-heading">
-          <h2>代码库快照</h2>
-          <span>最多显示 80 个文件</span>
-        </div>
-        <pre>{escape(files_output)}</pre>
-      </article>
-    </section>
+    {render_view_stage(active_view, state, stats, notes, files_output)}
 
     <section class="workspace-grid">
       <form class="panel" method="post" action="/command">
@@ -392,6 +376,105 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
 <script>{SCRIPT}</script>
 </body>
 </html>"""
+
+
+def render_view_stage(
+    active_view: str,
+    state: WebState,
+    stats: dict[str, Any],
+    notes: list[dict[str, Any]],
+    files_output: str,
+) -> str:
+    output = escape(state.last_response or VIEW_CONFIG[active_view]["hint"])
+    if active_view == "explore":
+        return f'''<section class="view-stage explore-stage">
+  <article class="panel output stage-primary">
+    <div class="panel-heading">
+      <h2>代码地图</h2>
+      <span>目录结构和入口文件</span>
+    </div>
+    <div class="map-strip" aria-hidden="true"><b>app</b><b>models</b><b>routes</b><b>services</b><b>tests</b></div>
+    <pre>{escape(files_output)}</pre>
+  </article>
+  <aside class="panel mode-card">
+    <div class="page-sigil">EXPLORE</div>
+    <h2>探索步骤</h2>
+    <ol class="flow-list">
+      <li><strong>扫描文件树</strong><span>定位 Flask app、tests、migrations 和配置入口。</span></li>
+      <li><strong>识别模块边界</strong><span>把 models、routes、services、utils 组织成维护地图。</span></li>
+      <li><strong>记录发现</strong><span>把架构结论保存为 finding 或 conclusion 笔记。</span></li>
+    </ol>
+  </aside>
+</section>'''
+    if active_view == "analyze":
+        return f'''<section class="view-stage analyze-stage">
+  <article class="panel output stage-primary">
+    <div class="panel-heading">
+      <h2>质量报告</h2>
+      <span>重复、复杂度、TODO 和测试风险</span>
+    </div>
+    <pre>{output}</pre>
+  </article>
+  <aside class="panel mode-card risk-panel">
+    <div class="page-sigil">ANALYZE</div>
+    <h2>风险矩阵</h2>
+    <div class="risk-grid">
+      <div><strong>HIGH</strong><span>重复服务逻辑</span></div>
+      <div><strong>MED</strong><span>复杂函数嵌套</span></div>
+      <div><strong>TEST</strong><span>覆盖率缺口</span></div>
+      <div><strong>TODO</strong><span>注释债务清理</span></div>
+    </div>
+  </aside>
+</section>'''
+    if active_view == "plan":
+        return f'''<section class="view-stage plan-stage">
+  <article class="panel output stage-primary">
+    <div class="panel-heading">
+      <h2>重构看板</h2>
+      <span>按优先级推进长期任务</span>
+    </div>
+    <div class="task-board">
+      <section><h3>高优先级</h3><p>User.email 唯一约束</p><p>提取 BaseService</p><p>重构 process_order</p></section>
+      <section><h3>中优先级</h3><p>services 单元测试</p><p>清理 TODO 注释</p><p>Order 时间字段</p></section>
+      <section><h3>低优先级</h3><p>性能优化</p><p>文档更新</p><p>报告归档</p></section>
+    </div>
+  </article>
+  <aside class="panel mode-card">
+    <div class="page-sigil">PLAN</div>
+    <h2>当前记忆</h2>
+    <p class="mode-summary">已记录 {stats["notes"]["total"]} 条笔记，最近任务会进入下一轮 ContextBuilder。</p>
+    <div class="mini-notes">{render_compact_notes(notes)}</div>
+  </aside>
+</section>'''
+    return f'''<section class="view-stage assistant-stage">
+  <article class="panel output stage-primary">
+    <div class="panel-heading">
+      <h2>对话控制台</h2>
+      <span>ContextBuilder + NoteTool + TerminalTool</span>
+    </div>
+    <pre>{output}</pre>
+  </article>
+  <aside class="panel mode-card">
+    <div class="page-sigil">RUN</div>
+    <h2>运行模式</h2>
+    <ol class="flow-list">
+      <li><strong>输入问题</strong><span>可以指定文件、目录、错误或重构目标。</span></li>
+      <li><strong>构建上下文</strong><span>自动合并最近对话、笔记和终端探索结果。</span></li>
+      <li><strong>沉淀状态</strong><span>问题、计划和结论会进入长期笔记。</span></li>
+    </ol>
+  </aside>
+</section>'''
+
+
+def render_compact_notes(notes: list[dict[str, Any]]) -> str:
+    if not notes:
+        return '<p>暂无任务笔记。</p>'
+    items = []
+    for note in notes[:4]:
+        items.append(
+            f'<p><strong>{escape(note.get("type", "general"))}</strong><span>{escape(note.get("title", "Untitled"))}</span></p>'
+        )
+    return "".join(items)
 
 
 def safe_command(assistant: CodebaseMaintainer, command: str) -> str:
@@ -714,6 +797,169 @@ h2 {
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 16px;
   margin-top: 16px;
+}
+
+.view-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.stage-primary {
+  min-height: 390px;
+}
+
+.mode-card {
+  display: grid;
+  align-content: start;
+  gap: 16px;
+}
+
+.page-sigil {
+  width: 100%;
+  min-height: 82px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(37, 111, 91, 0.2);
+  border-radius: 10px;
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.34), transparent 28%),
+    linear-gradient(135deg, rgba(37, 111, 91, 0.18), rgba(37, 111, 91, 0.04));
+  color: var(--accent-dark);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.flow-list {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.flow-list li {
+  display: grid;
+  gap: 5px;
+  border-left: 3px solid var(--accent);
+  padding-left: 12px;
+}
+
+.flow-list span,
+.mode-summary,
+.mini-notes span {
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.map-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(70px, 1fr));
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.map-strip b {
+  min-height: 42px;
+  display: grid;
+  place-items: center;
+  border: 1px solid rgba(37, 111, 91, 0.22);
+  border-radius: 9px;
+  background: rgba(37, 111, 91, 0.09);
+}
+
+.explore-stage .stage-primary {
+  background:
+    linear-gradient(135deg, rgba(37, 111, 91, 0.12), transparent 38%),
+    var(--panel);
+}
+
+.analyze-stage {
+  grid-template-columns: minmax(0, 0.74fr) minmax(340px, 0.46fr);
+}
+
+.analyze-stage .stage-primary {
+  background:
+    linear-gradient(135deg, rgba(155, 51, 40, 0.1), transparent 38%),
+    var(--panel);
+}
+
+.risk-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.risk-grid div {
+  min-height: 96px;
+  display: grid;
+  align-content: space-between;
+  border: 1px solid rgba(155, 51, 40, 0.22);
+  border-radius: 10px;
+  background: rgba(155, 51, 40, 0.07);
+  padding: 12px;
+}
+
+.risk-grid strong {
+  color: var(--warn);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.plan-stage {
+  grid-template-columns: minmax(0, 1fr) 330px;
+}
+
+.plan-stage .stage-primary {
+  background:
+    linear-gradient(135deg, rgba(37, 111, 91, 0.08), transparent 28%),
+    repeating-linear-gradient(90deg, rgba(37, 111, 91, 0.08) 0 1px, transparent 1px 140px),
+    var(--panel);
+}
+
+.task-board {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.task-board section {
+  min-height: 250px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(255, 253, 248, 0.58);
+  padding: 12px;
+}
+
+.task-board h3 {
+  margin: 0 0 12px;
+  font-size: 15px;
+}
+
+.task-board p,
+.mini-notes p {
+  margin: 0 0 9px;
+  border: 1px solid rgba(37, 111, 91, 0.16);
+  border-radius: 8px;
+  background: rgba(255, 253, 248, 0.62);
+  padding: 10px;
+}
+
+.mini-notes {
+  display: grid;
+  gap: 8px;
+}
+
+.mini-notes p {
+  display: grid;
+  gap: 4px;
+}
+
+.assistant-stage .stage-primary {
+  background:
+    linear-gradient(135deg, rgba(37, 111, 91, 0.16), transparent 34%),
+    var(--panel);
 }
 
 .panel {
@@ -1067,7 +1313,10 @@ pre {
   }
 
   button.secondary,
-  .workflow-button {
+  .workflow-button,
+  .task-board section,
+  .task-board p,
+  .mini-notes p {
     background: rgba(31, 33, 29, 0.88);
     color: #d8f2e8;
   }
@@ -1159,7 +1408,15 @@ pre {
 @media (max-width: 900px) {
   .hero,
   .workspace-grid,
-  .workflow-header {
+  .workflow-header,
+  .view-stage,
+  .analyze-stage,
+  .plan-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .task-board,
+  .map-strip {
     grid-template-columns: 1fr;
   }
 

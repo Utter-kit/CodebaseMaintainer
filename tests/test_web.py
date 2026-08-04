@@ -34,3 +34,15 @@ def test_render_page_supports_independent_workflow_pages(tmp_path):
         assert f'value="/{view}"' in html
 
     assert 'href="/explore"' in render_page(state, "assistant")
+
+
+def test_workflow_pages_have_distinct_stage_content(tmp_path):
+    codebase = tmp_path / "app"
+    codebase.mkdir()
+    (codebase / "api.py").write_text("# TODO add tests\n", encoding="utf-8")
+    state = WebState("demo", str(codebase), str(tmp_path / "notes"))
+
+    assert "对话控制台" in render_page(state, "assistant")
+    assert "代码地图" in render_page(state, "explore")
+    assert "风险矩阵" in render_page(state, "analyze")
+    assert "重构看板" in render_page(state, "plan")
