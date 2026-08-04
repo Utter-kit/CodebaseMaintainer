@@ -16,6 +16,7 @@ dev = ["pytest>=7.0"]
 
 [project.scripts]
 codebase-maintainer = "codebase_maintainer.cli:main"
+codebase-maintainer-ui = "codebase_maintainer.web:main"
 
 [tool.setuptools.packages.find]
 include = ["codebase_maintainer*"]

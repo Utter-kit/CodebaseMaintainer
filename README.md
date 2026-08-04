@@ -57,6 +57,20 @@ codebase-maintainer /path/to/flask_app "请查找 TODO、复杂模块和缺失�
 codebase-maintainer /path/to/flask_app --mode plan --report maintainer_report.json
 ```
 
+启动 Web UI：
+
+```bash
+python3 -m codebase_maintainer.web --codebase-path /path/to/flask_app --port 8765
+```
+
+安装为可编辑包后，也可以使用脚本入口：
+
+```bash
+codebase-maintainer-ui --codebase-path /path/to/flask_app --port 8765
+```
+
+打开浏览器访问 `http://127.0.0.1:8765`。页面支持配置项目路径、运行 `auto/explore/analyze/plan` 模式、执行代码库内终端探索命令、创建持久化笔记，并查看最近笔记和会话统计。
+
 ## Python 用法
 
 ```python
@@ -78,6 +92,7 @@ print(assistant.plan_next_steps())
 codebase_maintainer/
 ├── assistant.py      # 代码库维护助手主流程
 ├── cli.py            # 命令行入口
+├── web.py            # 本地 Web UI
 ├── context.py        # ContextPacket、ContextConfig、ContextBuilder
 └── tools.py          # NoteTool、TerminalTool
 
