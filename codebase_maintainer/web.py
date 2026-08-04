@@ -13,6 +13,49 @@ from .assistant import CodebaseMaintainer
 DEFAULT_QUERY = "请探索这个代码库并给出维护建议。"
 
 
+VIEW_CONFIG = {
+    "assistant": {
+        "path": "/assistant",
+        "label": "运行助手",
+        "mode": "auto",
+        "eyebrow": "初始化助手",
+        "title": "运行助手",
+        "query": DEFAULT_QUERY,
+        "hint": "对应 maintainer.run(...)，适合临时提问、指定文件分析和连续对话。",
+    },
+    "explore": {
+        "path": "/explore",
+        "label": "探索结构",
+        "mode": "explore",
+        "eyebrow": "第一天: 探索代码库",
+        "title": "探索结构",
+        "query": "请探索这个代码库的目录结构、核心模块和下一步维护入口。",
+        "hint": "对应 maintainer.explore()，会优先扫描 Python 文件结构并给出项目理解。",
+    },
+    "analyze": {
+        "path": "/analyze",
+        "label": "分析质量",
+        "mode": "analyze",
+        "eyebrow": "第二天: 分析代码质量",
+        "title": "分析质量",
+        "query": "请分析代码质量，重点关注重复代码、复杂度、TODO/FIXME 和缺失测试。",
+        "hint": "对应 maintainer.analyze()，会收集行数、TODO/FIXME 和质量风险。",
+    },
+    "plan": {
+        "path": "/plan",
+        "label": "规划任务",
+        "mode": "plan",
+        "eyebrow": "第三天: 规划重构任务",
+        "title": "规划任务",
+        "query": "请基于已有笔记和当前进度，整理下一阶段重构任务优先级。",
+        "hint": "对应 maintainer.plan_next_steps()，会回顾 task_state、blocker 和 action 笔记。",
+    },
+}
+
+PATH_TO_VIEW = {config["path"]: name for name, config in VIEW_CONFIG.items()}
+PATH_TO_VIEW["/"] = "assistant"
+
+
 class WebState:
     def __init__(
         self,
@@ -66,19 +109,22 @@ class MaintainerHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        if parsed.path != "/":
+        view = PATH_TO_VIEW.get(parsed.path)
+        if not view:
             self._send_html(render_not_found(), status=404)
             return
-        self._send_html(render_page(self.state))
+        self._send_html(render_page(self.state, view))
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         fields = self._read_form()
+        return_to = safe_return_path(first(fields, "return_to", "/assistant"))
         try:
             if parsed.path == "/run":
                 self._configure_from_form(fields)
-                query = first(fields, "query", DEFAULT_QUERY)
-                mode = first(fields, "mode", "auto")
+                view = PATH_TO_VIEW.get(return_to, "assistant")
+                query = first(fields, "query", VIEW_CONFIG[view]["query"])
+                mode = first(fields, "mode", VIEW_CONFIG[view]["mode"])
                 self.state.last_response = self.state.assistant.run(query, mode=mode)
                 self.state.last_error = ""
             elif parsed.path == "/command":
@@ -101,7 +147,7 @@ class MaintainerHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self.state.last_error = str(exc)
 
-        self._redirect("/")
+        self._redirect(return_to)
 
     def log_message(self, format: str, *args: Any) -> None:
         print(f"[web] {self.address_string()} - {format % args}")
@@ -174,16 +220,17 @@ def main(argv: list[str] | None = None) -> int:
     return 0
 
 
-def render_page(state: WebState) -> str:
+def render_page(state: WebState, active_view: str = "assistant") -> str:
     stats = state.assistant.get_stats()
     notes = state.assistant.note_tool.list(limit=8)
     files_output = safe_command(
         state.assistant,
         "find . -path ./.git -prune -o -path '*/__pycache__' -prune -o -maxdepth 3 -type f -print | sort | head -n 80",
     )
+    view = VIEW_CONFIG.get(active_view, VIEW_CONFIG["assistant"])
     mode_options = options(
         ["auto", "explore", "analyze", "plan"],
-        "auto",
+        view["mode"],
     )
     note_type_options = options(
         ["general", "task_state", "blocker", "action", "conclusion", "finding"],
@@ -215,8 +262,11 @@ def render_page(state: WebState) -> str:
 
     {render_error(state.last_error)}
 
+    {render_workflow_header(active_view)}
+
     <section class="hero">
       <form class="panel control-panel" method="post" action="/run">
+        <input type="hidden" name="return_to" value="{escape(view['path'])}">
         <div class="form-grid">
           <label>
             <span>项目名</span>
@@ -236,14 +286,13 @@ def render_page(state: WebState) -> str:
           </label>
         </div>
         <label>
-          <span>任务</span>
-          <textarea name="query" rows="4">{escape(DEFAULT_QUERY)}</textarea>
+          <span>{escape(view["title"])}任务</span>
+          <textarea name="query" rows="4">{escape(view["query"])}</textarea>
         </label>
-        <div class="actions">
-          <button type="submit">运行助手</button>
-          <button type="submit" name="mode" value="explore" class="secondary">探索结构</button>
-          <button type="submit" name="mode" value="analyze" class="secondary">分析质量</button>
-          <button type="submit" name="mode" value="plan" class="secondary">规划任务</button>
+        {render_workflow_nav(active_view)}
+        <div class="run-row">
+          <button type="submit">执行{escape(view["label"])}</button>
+          <span>{escape(view["hint"])}</span>
         </div>
       </form>
 
@@ -281,7 +330,7 @@ def render_page(state: WebState) -> str:
           <h2>助手输出</h2>
           <span>ContextBuilder + NoteTool + TerminalTool</span>
         </div>
-        <pre>{escape(state.last_response or "运行一次助手后，这里会显示维护建议。")}</pre>
+        <pre>{escape(state.last_response or view["hint"])}</pre>
       </article>
 
       <article class="panel output">
@@ -295,7 +344,7 @@ def render_page(state: WebState) -> str:
 
     <section class="workspace-grid">
       <form class="panel" method="post" action="/command">
-        {hidden_config_fields(state)}
+        {hidden_config_fields(state, view["path"])}
         <div class="panel-heading">
           <h2>终端探索</h2>
           <span>在目标代码库目录内执行</span>
@@ -309,7 +358,7 @@ def render_page(state: WebState) -> str:
       </form>
 
       <form class="panel" method="post" action="/note">
-        {hidden_config_fields(state)}
+        {hidden_config_fields(state, view["path"])}
         <div class="panel-heading">
           <h2>记录笔记</h2>
           <span>跨会话保存到 JSON</span>
@@ -352,12 +401,34 @@ def safe_command(assistant: CodebaseMaintainer, command: str) -> str:
         return f"无法读取代码库快照: {exc}"
 
 
-def hidden_config_fields(state: WebState) -> str:
+def hidden_config_fields(state: WebState, return_to: str = "/assistant") -> str:
     return (
+        f'<input type="hidden" name="return_to" value="{escape(return_to)}">'
         f'<input type="hidden" name="project_name" value="{escape(state.project_name)}">'
         f'<input type="hidden" name="codebase_path" value="{escape(state.codebase_path)}">'
         f'<input type="hidden" name="notes_path" value="{escape(state.notes_path or '')}">'
     )
+
+
+def render_workflow_header(active_view: str) -> str:
+    view = VIEW_CONFIG.get(active_view, VIEW_CONFIG["assistant"])
+    return (
+        f'<section class="workflow-header panel">'
+        f'<div><p class="eyebrow">{escape(view["eyebrow"])}</p>'
+        f'<h2>{escape(view["title"])}</h2></div>'
+        f'<p>{escape(view["hint"])}</p>'
+        f'</section>'
+    )
+
+
+def render_workflow_nav(active_view: str) -> str:
+    links = []
+    for name, view in VIEW_CONFIG.items():
+        active = " active" if name == active_view else ""
+        links.append(
+            f'<a class="workflow-button{active}" href="{escape(view["path"])}">{escape(view["label"])}</a>'
+        )
+    return '<nav class="actions workflow-nav" aria-label="工作流页面">' + "".join(links) + "</nav>"
 
 
 def render_notes(notes: list[dict[str, Any]]) -> str:
@@ -400,6 +471,10 @@ def first(fields: dict[str, list[str]], name: str, default: str) -> str:
     if not values:
         return default
     return values[-1] or default
+
+
+def safe_return_path(path: str) -> str:
+    return path if path in PATH_TO_VIEW else "/assistant"
 
 
 CSS = """
@@ -543,6 +618,95 @@ h2 {
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: 16px;
   margin-top: 20px;
+}
+
+.workflow-header {
+  display: grid;
+  grid-template-columns: minmax(0, 0.75fr) minmax(260px, 0.55fr);
+  align-items: end;
+  gap: 20px;
+  margin-top: 18px;
+}
+
+.workflow-header h2 {
+  font-size: clamp(28px, 4vw, 52px);
+  line-height: 1;
+}
+
+.workflow-header p:last-child {
+  margin: 0;
+  color: var(--muted);
+  line-height: 1.6;
+}
+
+.workflow-nav {
+  margin-bottom: 14px;
+}
+
+.workflow-button {
+  --button-x: 50%;
+  --button-y: 50%;
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 42px;
+  overflow: hidden;
+  border: 1px solid rgba(37, 111, 91, 0.32);
+  border-radius: 9px;
+  background:
+    radial-gradient(circle at var(--button-x) var(--button-y), rgba(37, 111, 91, 0.13), transparent 34%),
+    rgba(255, 253, 248, 0.88);
+  color: var(--accent-dark);
+  font-weight: 850;
+  padding: 0 16px;
+  text-decoration: none;
+  box-shadow: 0 8px 20px rgba(48, 40, 28, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.44);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1), box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.workflow-button::before {
+  content: "";
+  position: absolute;
+  inset: -35% -55%;
+  z-index: -1;
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 255, 0.34) 48%, transparent 58%);
+  transform: translateX(-60%) rotate(8deg);
+  transition: transform 520ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.workflow-button:hover {
+  transform: translateY(-2px) scale(1.015);
+  border-color: rgba(37, 111, 91, 0.62);
+  box-shadow: 0 16px 34px rgba(23, 72, 56, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.32);
+}
+
+.workflow-button:hover::before {
+  transform: translateX(54%) rotate(8deg);
+}
+
+.workflow-button.active {
+  border-color: rgba(37, 111, 91, 0.72);
+  background:
+    radial-gradient(circle at var(--button-x) var(--button-y), rgba(255, 255, 255, 0.26), transparent 32%),
+    linear-gradient(135deg, #2d8069, var(--accent-dark));
+  color: #fffaf0;
+  box-shadow: 0 14px 30px rgba(23, 72, 56, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
+.run-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.run-row span {
+  max-width: 58ch;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.45;
 }
 
 .workspace-grid {
@@ -902,9 +1066,14 @@ pre {
     background: rgba(30, 32, 27, 0.98);
   }
 
-  button.secondary {
+  button.secondary,
+  .workflow-button {
     background: rgba(31, 33, 29, 0.88);
     color: #d8f2e8;
+  }
+
+  .workflow-button.active {
+    color: #fffaf0;
   }
 
   .status-pill {
@@ -989,7 +1158,8 @@ pre {
 
 @media (max-width: 900px) {
   .hero,
-  .workspace-grid {
+  .workspace-grid,
+  .workflow-header {
     grid-template-columns: 1fr;
   }
 
@@ -1038,7 +1208,7 @@ SCRIPT = """
     }, { passive: true });
   });
 
-  document.querySelectorAll('button').forEach((button) => {
+  document.querySelectorAll('button, .workflow-button').forEach((button) => {
     button.addEventListener('pointermove', (event) => {
       const rect = button.getBoundingClientRect();
       button.style.setProperty('--button-x', `${event.clientX - rect.left}px`);

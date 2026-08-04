@@ -69,7 +69,7 @@ python3 -m codebase_maintainer.web --codebase-path /path/to/flask_app --port 876
 codebase-maintainer-ui --codebase-path /path/to/flask_app --port 8765
 ```
 
-打开浏览器访问 `http://127.0.0.1:8765`。页面支持配置项目路径、运行 `auto/explore/analyze/plan` 模式、执行代码库内终端探索命令、创建持久化笔记，并查看最近笔记和会话统计。
+打开浏览器访问 `http://127.0.0.1:8765`。页面支持四个独立工作流页面：`/assistant` 运行助手、`/explore` 探索结构、`/analyze` 分析质量、`/plan` 规划任务。每个页面都有对应默认任务、模式和执行入口，也支持代码库内终端探索、持久化笔记、最近笔记和会话统计。
 
 ## Python 用法
 
