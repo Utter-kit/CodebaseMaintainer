@@ -61,7 +61,7 @@ def test_workflow_navigation_uses_single_url(tmp_path):
     assert 'href="/assistant"' not in html
 
 
-def test_render_page_has_mobile_post_shell(tmp_path):
+def test_render_page_has_desktop_content_shell(tmp_path):
     codebase = tmp_path / "app"
     codebase.mkdir()
     state = WebState("demo", str(codebase), str(tmp_path / "notes"))
@@ -70,5 +70,6 @@ def test_render_page_has_mobile_post_shell(tmp_path):
     assert "mobile-cover" in html
     assert "cover-card" in html
     assert "app-sheet" in html
-    assert "bottom-bar" in html
+    assert "desktop-dock" in html
     assert "EXPLORE THE CODEBASE" in html
+    assert "Local Web Console" in html

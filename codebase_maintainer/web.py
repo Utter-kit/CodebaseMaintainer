@@ -391,7 +391,7 @@ def render_mobile_cover(active_view: str) -> str:
     }
     return (
         '<section class="mobile-cover" aria-label="视觉封面">'
-        '<div class="phone-status"><strong>10:51</strong><span>5G WIFI BAT</span></div>'
+        '<div class="desktop-kicker"><strong>Local Web Console</strong><span>single url workflow</span></div>'
         '<div class="cover-card">'
         '<div class="cover-water" aria-hidden="true"></div>'
         '<p>CodebaseMaintainer</p>'
@@ -407,8 +407,8 @@ def render_bottom_bar(stats: dict[str, Any]) -> str:
     notes = stats["notes"]["total"]
     issues = stats["activity"]["issues_found"]
     return (
-        '<nav class="bottom-bar" aria-label="快捷状态">'
-        '<div class="comment-box">说点什么...</div>'
+        '<nav class="bottom-bar desktop-dock" aria-label="快捷状态">'
+        '<div class="comment-box">CodebaseMaintainer desktop web</div>'
         f'<a href="/" aria-label="运行助手"><strong>♥</strong><span>{commands}</span></a>'
         f'<a href="/?view=explore" aria-label="探索笔记"><strong>◌</strong><span>{notes}</span></a>'
         f'<a href="/?view=analyze" aria-label="质量风险"><strong>☆</strong><span>{issues}</span></a>'
@@ -1467,6 +1467,124 @@ pre {
   color: var(--warn);
   padding: 12px 14px;
   font-weight: 700;
+}
+
+
+/* Desktop web layout inspired by immersive content sites. */
+.mobile-cover {
+  width: min(1380px, calc(100vw - 48px));
+  min-height: 430px;
+  padding: 28px 0 0;
+}
+
+.desktop-kicker {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 1380px;
+  margin: 0 auto 22px;
+  color: var(--muted);
+  font-size: 13px;
+  text-transform: uppercase;
+}
+
+.desktop-kicker strong {
+  color: var(--ink);
+  font-size: 14px;
+}
+
+.cover-card {
+  min-height: 360px;
+  margin: 0 auto;
+  border-radius: 12px;
+}
+
+.cover-card p {
+  margin: 44px 0 0 54px;
+  font-size: 14px;
+}
+
+.cover-card h2 {
+  max-width: 760px;
+  margin-left: 54px;
+  font-size: clamp(64px, 8vw, 126px);
+  line-height: 0.88;
+}
+
+.cover-card small {
+  margin: 72px 54px 0;
+  font-size: 12px;
+}
+
+.app-sheet {
+  width: min(1380px, calc(100vw - 48px));
+  min-height: 620px;
+  margin: -74px auto 0;
+  padding: 26px 36px 118px;
+  border-radius: 42px 42px 18px 18px;
+}
+
+.sheet-handle {
+  width: 96px;
+  height: 9px;
+  margin-bottom: 26px;
+}
+
+.bottom-bar {
+  width: min(860px, calc(100vw - 48px));
+  min-height: 72px;
+  bottom: 22px;
+  border: 1px solid rgba(24, 23, 19, 0.08);
+  border-radius: 999px;
+  box-shadow: 0 20px 60px rgba(19, 27, 32, 0.18);
+}
+
+.comment-box {
+  min-height: 44px;
+}
+
+.phone-status {
+  display: none;
+}
+
+.topbar {
+  flex-direction: row;
+}
+
+@media (max-width: 900px) {
+  .mobile-cover {
+    width: min(100vw, 760px);
+    min-height: 320px;
+    padding-inline: 14px;
+  }
+
+  .cover-card {
+    min-height: 230px;
+  }
+
+  .cover-card h2 {
+    max-width: 420px;
+    font-size: clamp(42px, 12vw, 68px);
+    margin-left: 28px;
+  }
+
+  .cover-card p,
+  .cover-card small {
+    margin-left: 28px;
+  }
+
+  .app-sheet {
+    width: min(100vw, 760px);
+    margin-top: -42px;
+    padding-inline: 18px;
+    border-radius: 32px 32px 0 0;
+  }
+
+  .bottom-bar {
+    width: min(100vw - 20px, 740px);
+    bottom: 10px;
+    grid-template-columns: minmax(0, 1fr) repeat(4, 50px);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
