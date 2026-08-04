@@ -31,9 +31,9 @@ def test_render_page_supports_independent_workflow_pages(tmp_path):
         html = render_page(state, view)
         assert title in html
         assert "workflow-button active" in html
-        assert f'value="/{view}"' in html
+        assert f'value="{view}"' in html
 
-    assert 'href="/explore"' in render_page(state, "assistant")
+    assert 'href="/?view=explore"' in render_page(state, "assistant")
 
 
 def test_workflow_pages_have_distinct_stage_content(tmp_path):
@@ -46,3 +46,16 @@ def test_workflow_pages_have_distinct_stage_content(tmp_path):
     assert "代码地图" in render_page(state, "explore")
     assert "风险矩阵" in render_page(state, "analyze")
     assert "重构看板" in render_page(state, "plan")
+
+
+def test_workflow_navigation_uses_single_url(tmp_path):
+    codebase = tmp_path / "app"
+    codebase.mkdir()
+    state = WebState("demo", str(codebase), str(tmp_path / "notes"))
+    html = render_page(state, "plan")
+
+    assert 'href="/"' in html
+    assert 'href="/?view=explore"' in html
+    assert 'href="/?view=analyze"' in html
+    assert 'href="/?view=plan"' in html
+    assert 'href="/assistant"' not in html

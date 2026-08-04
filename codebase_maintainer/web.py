@@ -5,7 +5,7 @@ from html import escape
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, urlencode, urlparse
 
 from .assistant import CodebaseMaintainer
 
@@ -15,7 +15,7 @@ DEFAULT_QUERY = "请探索这个代码库并给出维护建议。"
 
 VIEW_CONFIG = {
     "assistant": {
-        "path": "/assistant",
+        "path": "/",
         "label": "运行助手",
         "mode": "auto",
         "eyebrow": "初始化助手",
@@ -24,7 +24,7 @@ VIEW_CONFIG = {
         "hint": "对应 maintainer.run(...)，适合临时提问、指定文件分析和连续对话。",
     },
     "explore": {
-        "path": "/explore",
+        "path": "/?view=explore",
         "label": "探索结构",
         "mode": "explore",
         "eyebrow": "第一天: 探索代码库",
@@ -33,7 +33,7 @@ VIEW_CONFIG = {
         "hint": "对应 maintainer.explore()，会优先扫描 Python 文件结构并给出项目理解。",
     },
     "analyze": {
-        "path": "/analyze",
+        "path": "/?view=analyze",
         "label": "分析质量",
         "mode": "analyze",
         "eyebrow": "第二天: 分析代码质量",
@@ -42,7 +42,7 @@ VIEW_CONFIG = {
         "hint": "对应 maintainer.analyze()，会收集行数、TODO/FIXME 和质量风险。",
     },
     "plan": {
-        "path": "/plan",
+        "path": "/?view=plan",
         "label": "规划任务",
         "mode": "plan",
         "eyebrow": "第三天: 规划重构任务",
@@ -52,8 +52,8 @@ VIEW_CONFIG = {
     },
 }
 
-PATH_TO_VIEW = {config["path"]: name for name, config in VIEW_CONFIG.items()}
-PATH_TO_VIEW["/"] = "assistant"
+VIEW_NAMES = set(VIEW_CONFIG)
+
 
 
 class WebState:
@@ -109,20 +109,20 @@ class MaintainerHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         parsed = urlparse(self.path)
-        view = PATH_TO_VIEW.get(parsed.path)
-        if not view:
-            self._send_html(render_not_found(), status=404)
+        if parsed.path != "/":
+            self._redirect("/")
             return
+        view = view_from_query(parsed.query)
         self._send_html(render_page(self.state, view))
 
     def do_POST(self) -> None:
         parsed = urlparse(self.path)
         fields = self._read_form()
-        return_to = safe_return_path(first(fields, "return_to", "/assistant"))
+        return_to = safe_return_path(first(fields, "return_to", "assistant"))
         try:
             if parsed.path == "/run":
                 self._configure_from_form(fields)
-                view = PATH_TO_VIEW.get(return_to, "assistant")
+                view = return_to
                 query = first(fields, "query", VIEW_CONFIG[view]["query"])
                 mode = first(fields, "mode", VIEW_CONFIG[view]["mode"])
                 self.state.last_response = self.state.assistant.run(query, mode=mode)
@@ -147,7 +147,7 @@ class MaintainerHandler(BaseHTTPRequestHandler):
         except Exception as exc:
             self.state.last_error = str(exc)
 
-        self._redirect(return_to)
+        self._redirect(view_url(return_to))
 
     def log_message(self, format: str, *args: Any) -> None:
         print(f"[web] {self.address_string()} - {format % args}")
@@ -266,7 +266,7 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
 
     <section class="hero">
       <form class="panel control-panel" method="post" action="/run">
-        <input type="hidden" name="return_to" value="{escape(view['path'])}">
+        <input type="hidden" name="return_to" value="{escape(active_view)}">
         <div class="form-grid">
           <label>
             <span>项目名</span>
@@ -328,7 +328,7 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
 
     <section class="workspace-grid">
       <form class="panel" method="post" action="/command">
-        {hidden_config_fields(state, view["path"])}
+        {hidden_config_fields(state, active_view)}
         <div class="panel-heading">
           <h2>终端探索</h2>
           <span>在目标代码库目录内执行</span>
@@ -342,7 +342,7 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
       </form>
 
       <form class="panel" method="post" action="/note">
-        {hidden_config_fields(state, view["path"])}
+        {hidden_config_fields(state, active_view)}
         <div class="panel-heading">
           <h2>记录笔记</h2>
           <span>跨会话保存到 JSON</span>
@@ -484,7 +484,7 @@ def safe_command(assistant: CodebaseMaintainer, command: str) -> str:
         return f"无法读取代码库快照: {exc}"
 
 
-def hidden_config_fields(state: WebState, return_to: str = "/assistant") -> str:
+def hidden_config_fields(state: WebState, return_to: str = "assistant") -> str:
     return (
         f'<input type="hidden" name="return_to" value="{escape(return_to)}">'
         f'<input type="hidden" name="project_name" value="{escape(state.project_name)}">'
@@ -509,7 +509,7 @@ def render_workflow_nav(active_view: str) -> str:
     for name, view in VIEW_CONFIG.items():
         active = " active" if name == active_view else ""
         links.append(
-            f'<a class="workflow-button{active}" href="{escape(view["path"])}">{escape(view["label"])}</a>'
+            f'<a class="workflow-button{active}" href="{escape(view_url(name))}">{escape(view["label"])}</a>'
         )
     return '<nav class="actions workflow-nav" aria-label="工作流页面">' + "".join(links) + "</nav>"
 
@@ -556,8 +556,19 @@ def first(fields: dict[str, list[str]], name: str, default: str) -> str:
     return values[-1] or default
 
 
-def safe_return_path(path: str) -> str:
-    return path if path in PATH_TO_VIEW else "/assistant"
+def view_url(view: str) -> str:
+    if view == "assistant":
+        return "/"
+    return "/?" + urlencode({"view": view})
+
+
+def view_from_query(query: str) -> str:
+    view = first(parse_qs(query), "view", "assistant")
+    return view if view in VIEW_NAMES else "assistant"
+
+
+def safe_return_path(view: str) -> str:
+    return view if view in VIEW_NAMES else "assistant"
 
 
 CSS = """
