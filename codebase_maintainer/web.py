@@ -248,7 +248,9 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
 <body>
   <canvas class="ambient-canvas" id="ambient-canvas" aria-hidden="true"></canvas>
   <div class="background-scan" aria-hidden="true"></div>
-  <main class="shell">
+  {render_mobile_cover(active_view)}
+  <main class="shell app-sheet">
+    <div class="sheet-handle" aria-hidden="true"></div>
     <header class="topbar">
       <div>
         <p class="eyebrow">Long-running Agent Console</p>
@@ -372,10 +374,47 @@ def render_page(state: WebState, active_view: str = "assistant") -> str:
         {render_notes(notes)}
       </div>
     </section>
+    {render_bottom_bar(stats)}
   </main>
 <script>{SCRIPT}</script>
 </body>
 </html>"""
+
+
+def render_mobile_cover(active_view: str) -> str:
+    view = VIEW_CONFIG.get(active_view, VIEW_CONFIG["assistant"])
+    cover_words = {
+        "assistant": "MASTER THE CONTEXT",
+        "explore": "EXPLORE THE CODEBASE",
+        "analyze": "MEASURE THE RISK",
+        "plan": "PLAN THE REFACTOR",
+    }
+    return (
+        '<section class="mobile-cover" aria-label="视觉封面">'
+        '<div class="phone-status"><strong>10:51</strong><span>5G WIFI BAT</span></div>'
+        '<div class="cover-card">'
+        '<div class="cover-water" aria-hidden="true"></div>'
+        '<p>CodebaseMaintainer</p>'
+        f'<h2>{escape(cover_words.get(active_view, cover_words["assistant"]))}</h2>'
+        f'<small>{escape(view["eyebrow"])}</small>'
+        '</div>'
+        '</section>'
+    )
+
+
+def render_bottom_bar(stats: dict[str, Any]) -> str:
+    commands = stats["activity"]["commands_executed"]
+    notes = stats["notes"]["total"]
+    issues = stats["activity"]["issues_found"]
+    return (
+        '<nav class="bottom-bar" aria-label="快捷状态">'
+        '<div class="comment-box">说点什么...</div>'
+        f'<a href="/" aria-label="运行助手"><strong>♥</strong><span>{commands}</span></a>'
+        f'<a href="/?view=explore" aria-label="探索笔记"><strong>◌</strong><span>{notes}</span></a>'
+        f'<a href="/?view=analyze" aria-label="质量风险"><strong>☆</strong><span>{issues}</span></a>'
+        '<a href="/?view=plan" aria-label="规划任务"><strong>↗</strong><span>Plan</span></a>'
+        '</nav>'
+    )
 
 
 def render_view_stage(
@@ -647,6 +686,151 @@ body::before {
   width: min(1440px, calc(100vw - 32px));
   margin: 0 auto;
   padding: 24px 0 48px;
+}
+
+.mobile-cover {
+  position: relative;
+  z-index: 2;
+  width: min(560px, 100vw);
+  min-height: 330px;
+  margin: 0 auto;
+  padding: 28px 22px 0;
+}
+
+.phone-status {
+  height: 38px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: rgba(12, 18, 22, 0.86);
+  font-size: 20px;
+  font-weight: 800;
+}
+
+.phone-status span {
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+.cover-card {
+  position: relative;
+  min-height: 235px;
+  margin: 34px auto 0;
+  overflow: hidden;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 56% 22%, rgba(255, 255, 255, 0.9), transparent 9%),
+    linear-gradient(160deg, rgba(7, 67, 92, 0.9), rgba(5, 19, 32, 0.96));
+  box-shadow: 0 26px 60px rgba(6, 16, 24, 0.38);
+}
+
+.cover-water {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 64% 48%, rgba(255, 255, 255, 0.7), transparent 8%),
+    radial-gradient(ellipse at 48% 76%, rgba(255, 255, 255, 0.28), transparent 18%),
+    repeating-linear-gradient(172deg, rgba(255, 255, 255, 0.2) 0 2px, transparent 2px 18px),
+    linear-gradient(180deg, rgba(93, 164, 196, 0.4), rgba(2, 12, 24, 0.55));
+  filter: contrast(1.08) saturate(1.15);
+}
+
+.cover-card p,
+.cover-card h2,
+.cover-card small {
+  position: relative;
+  z-index: 1;
+}
+
+.cover-card p {
+  margin: 32px 0 0 28px;
+  color: rgba(255, 255, 255, 0.78);
+  font-family: ui-serif, Georgia, serif;
+  font-size: 13px;
+}
+
+.cover-card h2 {
+  max-width: 360px;
+  margin: 4px 0 0 28px;
+  color: rgba(255, 255, 255, 0.95);
+  font-family: ui-serif, Georgia, serif;
+  font-size: clamp(38px, 9vw, 58px);
+  font-weight: 500;
+  line-height: 0.92;
+}
+
+.cover-card small {
+  display: block;
+  margin: 64px 28px 0;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 11px;
+}
+
+.app-sheet {
+  width: min(560px, 100vw);
+  min-height: calc(100dvh - 270px);
+  margin: -42px auto 0;
+  padding: 18px 22px 92px;
+  border-radius: 34px 34px 0 0;
+  background: rgba(255, 253, 248, 0.96);
+  box-shadow: 0 -20px 70px rgba(19, 27, 32, 0.22);
+}
+
+.sheet-handle {
+  width: 64px;
+  height: 8px;
+  margin: -2px auto 24px;
+  border-radius: 999px;
+  background: rgba(24, 23, 19, 0.12);
+}
+
+.bottom-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 0;
+  z-index: 5;
+  width: min(560px, 100vw);
+  min-height: 78px;
+  transform: translateX(-50%);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) repeat(4, 58px);
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px 14px;
+  border-top: 1px solid rgba(24, 23, 19, 0.08);
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(18px) saturate(150%);
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+}
+
+.comment-box {
+  min-height: 46px;
+  display: flex;
+  align-items: center;
+  border-radius: 999px;
+  background: #f1f1f3;
+  color: #8a8a8f;
+  padding: 0 18px;
+}
+
+.bottom-bar a {
+  display: grid;
+  place-items: center;
+  gap: 2px;
+  color: #17191d;
+  text-decoration: none;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.bottom-bar strong {
+  color: #ff2f65;
+  font-size: 28px;
+  line-height: 1;
+}
+
+.bottom-bar a:nth-of-type(n + 2) strong {
+  color: #17191d;
 }
 
 .topbar {
@@ -1310,6 +1494,21 @@ pre {
     background-size: auto, 36px 36px, 36px 36px, auto;
   }
 
+  .app-sheet,
+  .bottom-bar {
+    background: rgba(28, 30, 26, 0.96);
+  }
+
+  .phone-status,
+  .bottom-bar a {
+    color: #f0eadf;
+  }
+
+  .comment-box {
+    background: rgba(255, 255, 255, 0.08);
+    color: var(--muted);
+  }
+
   body::before {
     mix-blend-mode: screen;
     opacity: 0.42;
@@ -1438,13 +1637,24 @@ pre {
 
 @media (max-width: 640px) {
   .shell {
-    width: min(100vw - 20px, 1440px);
-    padding-top: 12px;
+    width: min(100vw, 560px);
+    padding: 18px 16px 92px;
+  }
+
+  .mobile-cover {
+    width: min(100vw, 560px);
+    min-height: 300px;
+    padding-inline: 16px;
   }
 
   .topbar {
     align-items: flex-start;
     flex-direction: column;
+  }
+
+  .bottom-bar {
+    grid-template-columns: minmax(0, 1fr) repeat(4, 48px);
+    padding-inline: 12px;
   }
 
   h1 {

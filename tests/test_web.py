@@ -59,3 +59,16 @@ def test_workflow_navigation_uses_single_url(tmp_path):
     assert 'href="/?view=analyze"' in html
     assert 'href="/?view=plan"' in html
     assert 'href="/assistant"' not in html
+
+
+def test_render_page_has_mobile_post_shell(tmp_path):
+    codebase = tmp_path / "app"
+    codebase.mkdir()
+    state = WebState("demo", str(codebase), str(tmp_path / "notes"))
+    html = render_page(state, "explore")
+
+    assert "mobile-cover" in html
+    assert "cover-card" in html
+    assert "app-sheet" in html
+    assert "bottom-bar" in html
+    assert "EXPLORE THE CODEBASE" in html
